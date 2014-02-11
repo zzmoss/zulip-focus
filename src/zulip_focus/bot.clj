@@ -8,9 +8,22 @@
   (with-open [r (io/reader filename)]
     (read (java.io.PushbackReader. r))))
 
-(defn -main
-  "I don't do a whole lot ... yet."
-  [& args]
-  (println( :zulip_api_key (load-config "config.clj")))
-  ;(println(client/get "http://google.com"))
-)
+(def config (load-config "config.clj"))
+
+(defn ensure-queue []
+  (println (type (eval (:body (client/get (:read_url config)
+              {
+                :basic-auth [(:zulip_bot_email config) (:zulip_api_key config)]
+                :query-params { "queue_id" (:queue_id config) "last_event_id" -1 }
+              }))))))
+
+(defn get-all []
+  (client/get (:read_url config)
+              {
+                :basic-auth [(:zulip_bot_email config) (:zulip_api_key config)]
+                :query-params { "queue_id" (:queue_id config) "last_event_id" -1 }
+              }))
+
+(defn -main [& args]
+  (ensure-queue))
+  ;;(println (get-all)))
