@@ -17,7 +17,7 @@
   (try (client/get (:read_url config)
               {
                 :basic-auth [(:zulip_bot_email config) (:zulip_api_key config)]
-                :query-params { "queue_id" (:queue_id config) "last_event_id" -1 }
+                :query-params { "queue_id" (:queue_id config) "last_event_id" (:last_event_id config) }
               })
          config
     (catch clojure.lang.ExceptionInfo e
@@ -33,7 +33,11 @@
 
 (def config (load-config "config.clj"))
 
-(defn get-one []
+(defn parse-events [events]
+  (map (fn [event] (:content (:message event)))
+       events))
+
+(defn get-once []
   (let [message (client/get (:read_url config)
               {
                 :basic-auth [(:zulip_bot_email config) (:zulip_api_key config)]
@@ -42,13 +46,16 @@
         body (json/read-str (:body message) :key-fn keyword)
         event-type (:type (first (:events body)))]
     (if (not (= event-type "heartbeat"))
-      body)))
 
-(defn get-all []
-    (let [message (get-one)]
+      (parse-events(:events body))
+     )))
+
+(defn get-forever []
+    (let [message (get-once)]
       (if message (println message))
       (recur)))
 
+
 (defn -main [& args]
   (println "Starting...")
-  (get-all))
+  (get-forever))
