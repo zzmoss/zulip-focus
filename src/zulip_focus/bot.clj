@@ -34,7 +34,9 @@
 (def config (load-config "config.clj"))
 
 (defn parse-events [events]
-  (map (fn [event] (:content (:message event)))
+  (map (fn [event]
+         (let [message (:message event)]
+           (str "[" (:display_recipient message) "/" (:subject message) "] " (:sender_full_name message) ": " (:content message))))
        events))
 
 (defn get-once [last_event_id]
