@@ -22,7 +22,7 @@
          config
     (catch clojure.lang.ExceptionInfo e
       (let [params (create-queue config)]
-        (assoc config :queue_id (:queue_id params) :last_event_id (:last_event_id params))))))
+        (assoc config :queue_id (:queue_id params) :last_event_id (str (:last_event_id params)))))))
 
 (defn load-config [filename]
     (let [config (read-string (slurp filename))
@@ -33,13 +33,22 @@
 
 (def config (load-config "config.clj"))
 
-(defn get-all []
-  (client/get (:read_url config)
+(defn get-one []
+  (let [message (client/get (:read_url config)
               {
                 :basic-auth [(:zulip_bot_email config) (:zulip_api_key config)]
-                :query-params { "queue_id" (:queue_id config) "last_event_id" -1 }
-              }))
+                :query-params { "queue_id" (:queue_id config) "last_event_id" (:last_event_id config) }
+              })
+        body (json/read-str (:body message) :key-fn keyword)
+        event-type (:type (first (:events body)))]
+    (if (not (= event-type "heartbeat"))
+      body)))
+
+(defn get-all []
+    (let [message (get-one)]
+      (if message (println message))
+      (recur)))
 
 (defn -main [& args]
-  (println config))
-  ;;(println (get-all)))
+  (println "Starting...")
+  (get-all))
