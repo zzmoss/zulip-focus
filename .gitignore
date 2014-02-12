@@ -7,3 +7,5 @@ pom.xml
 /target/
 config.clj
 .*.sw?
+.lein-repl-history
+.nrepl-port

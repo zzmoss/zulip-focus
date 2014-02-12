@@ -1,9 +1,8 @@
 (ns zulip-focus.bot
   (:gen-class)
   (:require [clj-http.client :as client]
-            [clojure.java.io :as io]
             [clojure.data.json :as json])
-  (:import [java.io PushbackReader]))
+  )
 
 
 (defn create-queue [config]
@@ -26,9 +25,10 @@
         (assoc config :queue_id (:queue_id params) :last_event_id (:last_event_id params))))))
 
 (defn load-config [filename]
-  (with-open [r (io/reader filename)]
-    (let [config (read (java.io.PushbackReader. r))]
-      (ensure-queue config))))
+    (let [config (read-string (slurp filename))
+         updated-config (ensure-queue config)]
+         (spit filename (with-out-str (pr updated-config)))
+        updated-config))
 
 
 (def config (load-config "config.clj"))
