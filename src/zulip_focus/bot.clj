@@ -17,12 +17,12 @@
   (try (client/get (:read_url config)
               {
                 :basic-auth [(:zulip_bot_email config) (:zulip_api_key config)]
-                :query-params { "queue_id" (:queue_id config) "last_event_id" (:last_event_id config) }
+                :query-params { "queue_id" (:queue_id config) "last_event_id" "-1" }
               })
          config
     (catch clojure.lang.ExceptionInfo e
       (let [params (create-queue config)]
-        (assoc config :queue_id (:queue_id params) :last_event_id (str (:last_event_id params)))))))
+        (assoc config :queue_id (:queue_id params))))))
 
 (defn load-config [filename]
     (let [config (read-string (slurp filename))
@@ -37,25 +37,30 @@
   (map (fn [event] (:content (:message event)))
        events))
 
-(defn get-once []
+(defn get-once [last_event_id]
   (let [message (client/get (:read_url config)
               {
                 :basic-auth [(:zulip_bot_email config) (:zulip_api_key config)]
-                :query-params { "queue_id" (:queue_id config) "last_event_id" (:last_event_id config) }
+                :query-params { "queue_id" (:queue_id config) "last_event_id" last_event_id }
               })
         body (json/read-str (:body message) :key-fn keyword)
         event-type (:type (first (:events body)))]
     (if (not (= event-type "heartbeat"))
+      (do
+          (println (parse-events(:events body)))
+          (str (:id (last (:events body))))
+        )
+      last_event_id
+     )
 
-      (parse-events(:events body))
-     )))
+    )
 
-(defn get-forever []
-    (let [message (get-once)]
-      (if message (println message))
-      (recur)))
+  )
+
+(defn get-forever [last_event_id]
+  (recur (get-once last_event_id)))
 
 
 (defn -main [& args]
   (println "Starting...")
-  (get-forever))
+  (get-forever "-1"))
